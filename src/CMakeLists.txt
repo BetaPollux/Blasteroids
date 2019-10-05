@@ -14,6 +14,7 @@ add_executable(Blasteroids
 
 target_link_libraries(Blasteroids
     PRIVATE
+        Containers
         allegro
         allegro_primitives
         m

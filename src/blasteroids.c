@@ -2,6 +2,7 @@
 #include "asteroid.h"
 #include "blast.h"
 #include "calc.h"
+#include <Containers/List.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
@@ -22,25 +23,25 @@ int main(int argc, char **argv)
 	if (!al_init())
 	{
 		fprintf(stderr, "Failed to initialize allegro!\n");
-        return -1;
+        return EXIT_FAILURE;
 	}
 
     if (!al_init_primitives_addon())
 	{
 		fprintf(stderr, "Failed to initialize primitive-addons!\n");
-        return -1;
+        return EXIT_FAILURE;
 	}
 
     if(!al_install_keyboard()) {
         fprintf(stderr, "Failed to initialize the keyboard!\n");
-        return -1;
+        return EXIT_FAILURE;
     }
 
 	timer = al_create_timer(1.0f / FPS);
 	if (!timer)
 	{
 		fprintf(stderr, "Failed to create timer!\n");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	display = al_create_display(SCREEN_W, SCREEN_H);
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "Failed to create display!\n");
 		al_destroy_timer(timer);
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	event_queue = al_create_event_queue();
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to create event_queue!\n");
 		al_destroy_display(display);
 		al_destroy_timer(timer);
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	al_register_event_source(event_queue, al_get_display_event_source(display));
@@ -75,15 +76,28 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to create spaceship!\n");
     }
 
-	Asteroid *asteroid;
-	if (Asteroid_Create(&asteroid, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H)))
-    {
-        fprintf(stderr, "Failed to create asteroid!\n");
-    }
+	List_t asteroids = List_Create();
+	if (!asteroids)
+	{
+		fprintf(stderr, "Failed to create asteroid list!\n");
+	}
 
-	Asteroid *ast1 = NULL;
-	Asteroid *ast2 = NULL;
-	Blast *blast = NULL;
+	List_t blasts = List_Create();
+	if (!blasts)
+	{
+		fprintf(stderr, "Failed to create blast list!\n");
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		Asteroid *ast;
+		if (Asteroid_Create(&ast, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H)))
+		{
+			fprintf(stderr, "Failed to create asteroid!\n");
+			break;
+		}
+		List_Add(asteroids, ast);
+	}
 
 	while(1)
 	{
@@ -113,16 +127,27 @@ int main(int argc, char **argv)
                 case ALLEGRO_KEY_RIGHT:
 					Spaceship_Rotate(ship, ToRadians(PerSecond(180.0f)));
                     break;
-
-                case ALLEGRO_KEY_SPACE:
-					if (!blast && Spaceship_Fire(ship, &blast))
-					{
-						fprintf(stderr, "Failed to create blast!\n");
-						blast = NULL;
-					}
-                    break;
             }
         }
+		else if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
+        {
+			switch (ev.keyboard.keycode)
+			{
+				case ALLEGRO_KEY_SPACE:
+				{
+					Blast *newBlast;
+					if (!Spaceship_Fire(ship, &newBlast))
+					{
+						List_Add(blasts, newBlast);
+					}
+					else
+					{
+						fprintf(stderr, "Failed to create blast!\n");
+					}
+				}
+				break;
+			}
+		}
 		else if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
 		{
 			printf("Closing!\n");
@@ -137,64 +162,81 @@ int main(int argc, char **argv)
 			Spaceship_Update(ship);
             Spaceship_Draw(ship);
 
-			Asteroid_Update(asteroid);
-			Asteroid_Draw(asteroid);
-
-			BoundingBox_t astBox;
-			Asteroid_GetBoundingBox(asteroid, &astBox);
-			
 			BoundingBox_t shipBox;
 			Spaceship_GetBoundingBox(ship, &shipBox);
+
+			#ifdef DRAW_BOUNDING
+				BoundingBox_Draw(&shipBox);
+			#endif
+
+			int destroyAstIndex = -1;
+			int destroyBlastIndex = -1;
+			int numAsteroids = List_Count(asteroids);
+			for (int astIdx = 0; astIdx < numAsteroids; astIdx++)
+			{
+				Asteroid *asteroid = List_Item(asteroids, astIdx);
+				Asteroid_Update(asteroid);
+				Asteroid_Draw(asteroid);
+
+				BoundingBox_t astBox;
+				Asteroid_GetBoundingBox(asteroid, &astBox);
 			
-#ifdef DRAW_BOUNDING
-			BoundingBox_Draw(&astBox);
-			BoundingBox_Draw(&shipBox);
-#endif
+				#ifdef DRAW_BOUNDING
+					BoundingBox_Draw(&astBox);
+				#endif
 
-			if (BoundingBox_Overlapped(&astBox, &shipBox))
-			{
-				Spaceship_Destroy(ship);
-				Spaceship_Create(&ship);
-			}
-
-			if (blast)
-			{
-				Blast_Update(blast);
-				
-				Point_t p;
-				Blast_GetLocation(blast, &p);
-				
-				bool destroyBlast = false;
-
-				if (BoundingBox_IsInside(&astBox, &p))
+				if (BoundingBox_Overlapped(&astBox, &shipBox))
 				{
-					destroyBlast = true;
-					Asteroid_SpawnSplit(asteroid, &ast1, &ast2);
-					Asteroid_Destroy(asteroid);
-					Asteroid_Create(&asteroid, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H));
+					Spaceship_Destroy(ship);
+					Spaceship_Create(&ship);
 				}
 
-				if (destroyBlast || Blast_IsOffScreen(blast))
+				int numBlasts = List_Count(blasts);
+				for (int blastIdx = 0; blastIdx < numBlasts; blastIdx++)
 				{
-					Blast_Destroy(blast);
-					blast = NULL;
-				}
-				else
-				{
-					Blast_Draw(blast);
+					Blast *blast = List_Item(blasts, blastIdx);
+					Blast_Update(blast);
+					
+					Point_t p;
+					Blast_GetLocation(blast, &p);
+
+					if (BoundingBox_IsInside(&astBox, &p))
+					{
+						destroyAstIndex = astIdx;
+						destroyBlastIndex = blastIdx;
+
+						Asteroid *ast1, *ast2;
+						if (!Asteroid_SpawnSplit(asteroid, &ast1, &ast2))
+						{
+							List_Add(asteroids, ast1);
+							List_Add(asteroids, ast2);
+						}
+
+						Asteroid *newAst;
+						Asteroid_Create(&newAst, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H));
+						List_Add(asteroids, newAst);
+					}
+					else if (Blast_IsOffScreen(blast))
+					{
+						destroyBlastIndex = blastIdx;
+					}
+					else
+					{
+						Blast_Draw(blast);
+					}
 				}
 			}
 
-			if (ast1)
+			if (destroyAstIndex >= 0)
 			{
-				Asteroid_Update(ast1);
-				Asteroid_Draw(ast1);
+				Asteroid *destAst = List_RemoveAt(asteroids, destroyAstIndex);
+				Asteroid_Destroy(destAst);
 			}
 
-			if (ast2)
+			if (destroyBlastIndex >= 0)
 			{
-				Asteroid_Update(ast2);
-				Asteroid_Draw(ast2);
+				Blast *destBlast = List_RemoveAt(blasts, destroyBlastIndex);
+				Blast_Destroy(destBlast);
 			}
 
             al_flip_display();
@@ -202,15 +244,26 @@ int main(int argc, char **argv)
 	}
 
     Spaceship_Destroy(ship);
-	Asteroid_Destroy(asteroid);
-	if (blast)
+
+	int numAsteroids = List_Count(asteroids);
+	while(numAsteroids--)
 	{
+		Asteroid *ast = List_RemoveAt(asteroids, numAsteroids);
+		Asteroid_Destroy(ast);
+	}
+	List_Destroy(asteroids);
+
+	int numBlasts = List_Count(blasts);
+	while(numBlasts--)
+	{
+		Blast *blast = List_RemoveAt(blasts, numBlasts);
 		Blast_Destroy(blast);
 	}
+	List_Destroy(blasts);
 
 	al_destroy_timer(timer);
 	al_destroy_display(display);
 	al_destroy_event_queue(event_queue);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
