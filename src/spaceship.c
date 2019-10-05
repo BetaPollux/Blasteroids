@@ -1,8 +1,11 @@
 #include "spaceship.h"
+#include "calc.h"
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#define SHIP_MAX_SPEED      200.0f
 
  struct SpaceshipStruct {
     float sx;
@@ -18,14 +21,17 @@ int Spaceship_Create(Spaceship **ship)
     assert(ship);
 
     Spaceship *newShip = malloc(sizeof(Spaceship));
-    newShip->sx = 300.0f;
-    newShip->sy = 300.0f;
-    newShip->heading = 0.0f;
-    newShip->speed = 0.0;
-    newShip->gone = 0;
-    newShip->color = al_map_rgb(0, 255, 0);
+    if (newShip)
+    {
+        newShip->sx = SCREEN_W / 2;
+        newShip->sy = SCREEN_H / 2;
+        newShip->heading = 0.0f;
+        newShip->speed = 0.0;
+        newShip->gone = 0;
+        newShip->color = al_map_rgb(0, 255, 0);
 
-    *ship = newShip;
+        *ship = newShip;
+    }
     
     return (newShip == NULL);
 }
@@ -37,16 +43,59 @@ void Spaceship_Destroy(Spaceship *ship)
     free(ship);
 }
 
+void Spaceship_Accelerate(Spaceship *ship, float accel)
+{
+    assert(ship);
+
+    ship->speed += accel;
+
+    if (ship->speed < 0.0f)
+    {
+        ship->speed = 0.0f;
+    }
+    else if (ship->speed > PerSecond(SHIP_MAX_SPEED))
+    {
+        ship->speed = PerSecond(SHIP_MAX_SPEED);
+    }
+}
+
+void Spaceship_Rotate(Spaceship *ship, float step)
+{
+    assert(ship);
+
+    ship->heading += step;
+}
+
+void Spaceship_Update(Spaceship *ship)
+{
+    assert(ship);
+
+    ship->sx += Displacement_X(ship->heading, ship->speed);
+    ship->sy += Displacement_Y(ship->heading, ship->speed);
+
+    WrapPosition(&ship->sx, &ship->sy);
+}
+
 void Spaceship_Draw(const Spaceship *ship)
 {
     assert(ship);
 
-    al_draw_line(ship->sx - 8.0f, ship->sy + 9.0f, 
-                ship->sx + 0.0f, ship->sy - 11.0f, ship->color, 3.0f);
-    al_draw_line(ship->sx + 0.0f, ship->sy - 11.0f, 
-                ship->sx + 8.0f, ship->sy  + 9.0f, ship->color, 3.0f);
-    al_draw_line(ship->sx - 6.0f, ship->sy + 4.0f, 
-                ship->sx - 1.0f, ship->sy + 4.0f, ship->color, 3.0f);
-    al_draw_line(ship->sx + 6.0f, ship->sy + 4.0f,
-                ship->sx + 1.0f, ship->sy + 4.0f, ship->color, 3.0f);
+    ALLEGRO_TRANSFORM transform;
+    al_identity_transform(&transform);
+    al_rotate_transform(&transform, ship->heading);
+    al_translate_transform(&transform, ship->sx, ship->sy);
+    al_use_transform(&transform);
+
+    al_draw_line(-8.0f, 9.0f, 0.0f, -11.0f, ship->color, 3.0f);
+    al_draw_line(0.0f, -11.0f, 8.0f, 9.0f, ship->color, 3.0f);
+    al_draw_line(-6.0f, 4.0f, -1.0f, 4.0f, ship->color, 3.0f);
+    al_draw_line(6.0f, 4.0f, 1.0f, 4.0f, ship->color, 3.0f);
+}
+
+int Spaceship_Fire(const Spaceship *ship, Blast **blast)
+{
+    assert(ship);
+    assert(blast);
+
+    return Blast_Create(blast, ship->sx, ship->sy - 10.0f, ship->heading);
 }

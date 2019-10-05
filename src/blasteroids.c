@@ -1,12 +1,11 @@
 #include "spaceship.h"
-
+#include "asteroid.h"
+#include "blast.h"
+#include "calc.h"
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
-
-static const float FPS = 30.0f;
-static const int SCREEN_W = 640;
-static const int SCREEN_H = 480;
+#include <stdlib.h>
 
 int main(int argc, char **argv) 
 {
@@ -14,6 +13,8 @@ int main(int argc, char **argv)
 	ALLEGRO_EVENT_QUEUE *event_queue = NULL;
 	ALLEGRO_TIMER *timer = NULL;
     bool redraw = true;
+
+	srand(time(0));
 
 	if (!al_init())
 	{
@@ -65,17 +66,19 @@ int main(int argc, char **argv)
 
 	al_start_timer(timer);
 
-	unsigned char cnt = 0;
-
     Spaceship *ship;
     if (Spaceship_Create(&ship))
     {
         fprintf(stderr, "Failed to create spaceship!\n");
-		al_destroy_display(display);
-		al_destroy_timer(timer);
-        al_destroy_event_queue(event_queue);
-		return -1;
     }
+
+	Asteroid *asteroid;
+	if (Asteroid_Create(&asteroid, 150.0f, 150.0f))
+    {
+        fprintf(stderr, "Failed to create asteroid!\n");
+    }
+
+	Blast *blast = NULL;
 
 	while(1)
 	{
@@ -84,28 +87,34 @@ int main(int argc, char **argv)
 
 		if (ev.type == ALLEGRO_EVENT_TIMER)
 		{
-            printf(".");
-
-            if (cnt++ == 20)
-                printf("\n"), cnt = 0;
+			redraw = true;
 		}
-        else if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
+        else if (ev.type == ALLEGRO_EVENT_KEY_CHAR)
         {
             switch (ev.keyboard.keycode)
             {
                 case ALLEGRO_KEY_UP:
+					Spaceship_Accelerate(ship, PerSecond(15.0f));
                     break;
 
                 case ALLEGRO_KEY_DOWN:
+					Spaceship_Accelerate(ship, PerSecond(-15.0f));
                     break;
 
                 case ALLEGRO_KEY_LEFT:
+					Spaceship_Rotate(ship, ToRadians(PerSecond(-180.0f)));
                     break;
 
                 case ALLEGRO_KEY_RIGHT:
+					Spaceship_Rotate(ship, ToRadians(PerSecond(180.0f)));
                     break;
 
                 case ALLEGRO_KEY_SPACE:
+					if (Spaceship_Fire(ship, &blast))
+					{
+						fprintf(stderr, "Failed to create blast!\n");
+						blast = NULL;
+					}
                     break;
             }
         }
@@ -120,13 +129,28 @@ int main(int argc, char **argv)
             redraw = false;
             al_clear_to_color(al_map_rgb(0,0,0));
 
+			Spaceship_Update(ship);
             Spaceship_Draw(ship);
+
+			Asteroid_Update(asteroid);
+			Asteroid_Draw(asteroid);
+
+			if (blast)
+			{
+				Blast_Update(blast);
+				Blast_Draw(blast);
+			}
 
             al_flip_display();
         }
 	}
 
     Spaceship_Destroy(ship);
+	Asteroid_Destroy(asteroid);
+	if (blast)
+	{
+		Blast_Destroy(blast);
+	}
 
 	al_destroy_timer(timer);
 	al_destroy_display(display);

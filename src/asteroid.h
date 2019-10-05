@@ -1,18 +1,14 @@
 #ifndef _ASTEROID_H
 #define _ASTEROID_H
 
-#include <allegro5/allegro.h>
+typedef struct AsteroidStruct Asteroid;
 
-typedef struct {
-    float sx;
-    float sy;
-    float heading;
-    float twist;
-    float speed;
-    float rot_velocity;
-    float scale;
-    int gone;
-    ALLEGRO_COLOR color;
-} Asteroid;
+int Asteroid_Create(Asteroid **asteroid, float x, float y);
+
+void Asteroid_Destroy(Asteroid *asteroid);
+
+void Asteroid_Update(Asteroid *asteroid);
+
+void Asteroid_Draw(const Asteroid *asteroid);
 
 #endif // _ASTEROID_H

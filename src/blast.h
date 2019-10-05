@@ -1,15 +1,14 @@
 #ifndef _BLAST_H
 #define _BLAST_H
 
-#include <allegro5/allegro.h>
+typedef struct BlastStruct Blast;
 
-typedef struct {
-    float sx;
-    float sy;
-    float heading;
-    float speed;
-    int gone;
-    ALLEGRO_COLOR color;
-} Blast;
+int Blast_Create(Blast **blast, float x, float y, float heading);
+
+void Blast_Destroy(Blast *blast);
+
+void Blast_Update(Blast *blast);
+
+void Blast_Draw(const Blast *blast);
 
 #endif // _BLAST_H
