@@ -6,7 +6,7 @@ float Random(float min, float max)
 {
     int i = rand() % 1000;
 
-    return (min + (i * 0.001f * max));
+    return (min + (i * 0.001f * (max - min)));
 }
 
 void WrapPosition(float *x, float *y)

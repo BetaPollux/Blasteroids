@@ -81,6 +81,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to create asteroid!\n");
     }
 
+	Asteroid *ast1 = NULL;
+	Asteroid *ast2 = NULL;
 	Blast *blast = NULL;
 
 	while(1)
@@ -167,6 +169,7 @@ int main(int argc, char **argv)
 				if (BoundingBox_IsInside(&astBox, &p))
 				{
 					destroyBlast = true;
+					Asteroid_SpawnSplit(asteroid, &ast1, &ast2);
 					Asteroid_Destroy(asteroid);
 					Asteroid_Create(&asteroid, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H));
 				}
@@ -180,6 +183,18 @@ int main(int argc, char **argv)
 				{
 					Blast_Draw(blast);
 				}
+			}
+
+			if (ast1)
+			{
+				Asteroid_Update(ast1);
+				Asteroid_Draw(ast1);
+			}
+
+			if (ast2)
+			{
+				Asteroid_Update(ast2);
+				Asteroid_Draw(ast2);
 			}
 
             al_flip_display();

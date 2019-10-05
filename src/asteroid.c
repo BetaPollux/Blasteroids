@@ -23,27 +23,43 @@ struct AsteroidStruct {
     ALLEGRO_COLOR color;
 };
 
-int Asteroid_Create(Asteroid **asteroid, float x, float y)
+int createAsteroid(Asteroid **asteroid, float x, float y, float heading, float speed, float scale)
 {
     assert(asteroid);
+
+    if (scale < ASTEROID_MIN_SCALE)
+    {
+        return 1;
+    }
 
     Asteroid *newAsteroid = malloc(sizeof(Asteroid));
     if (newAsteroid)
     {
         newAsteroid->sx = x;
         newAsteroid->sy = y;
-        newAsteroid->heading = Random(0.0f, ToRadians(360.0f));
+        newAsteroid->heading = heading;
         newAsteroid->twist = Random(0.0f, ToRadians(360.0f));
-        newAsteroid->speed = PerSecond(Random(10.0f, 50.0f));
+        newAsteroid->speed = speed;
         newAsteroid->rot_velocity = PerSecond(Random(ToRadians(5.0f), ToRadians(30.0f)));
-        newAsteroid->scale = Random(ASTEROID_MIN_SCALE, ASTEROID_MAX_SCALE);
+        newAsteroid->scale = scale;
         newAsteroid->gone = 0;
         newAsteroid->color = al_map_rgb(255, 255, 255);
 
         *asteroid = newAsteroid;
     }
-    
+
     return (newAsteroid == NULL);
+}
+
+int Asteroid_Create(Asteroid **asteroid, float x, float y)
+{
+    assert(asteroid);
+
+    return createAsteroid(asteroid, x, y,
+            Random(0.0f, ToRadians(360.0f)),
+            PerSecond(Random(10.0f, 50.0f)),
+            Random(ASTEROID_MIN_SCALE, ASTEROID_MAX_SCALE)
+        );
 }
 
 void Asteroid_Destroy(Asteroid *asteroid)
@@ -109,4 +125,30 @@ void Asteroid_GetBoundingBox(const Asteroid *asteroid, BoundingBox_t *out)
     out->right = asteroid->sx + adjWidth;
     out->top = asteroid->sy - adjHeight;
     out->bottom = asteroid->sy + adjHeight;
+}
+
+int Asteroid_SpawnSplit(const Asteroid *asteroid, Asteroid **one, Asteroid **two)
+{
+    assert(asteroid);
+    assert(one);
+    assert(two);
+
+    float newScale = asteroid->scale * 0.5f;
+    float headingDelta = ToRadians(30.0f);
+
+    *one = NULL;
+    *two = NULL;
+
+    if (createAsteroid(one, asteroid->sx, asteroid->sy, asteroid->heading + headingDelta, asteroid->speed, newScale))
+    {
+        return (*one == NULL);
+    }
+
+    if (createAsteroid(two, asteroid->sx, asteroid->sy, asteroid->heading - headingDelta, asteroid->speed, newScale))
+    {
+        Asteroid_Destroy(*one);
+        return (*two == NULL);
+    }
+
+    return (*one == NULL) || (*two == NULL);
 }
