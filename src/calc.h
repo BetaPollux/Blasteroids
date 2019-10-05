@@ -2,6 +2,7 @@
 #define _CALC_H
 
 #include <math.h>
+#include <stdbool.h>
 
 #define SCREEN_W    640
 #define SCREEN_H    480
@@ -10,6 +11,7 @@
 
 float Random(float min, float max);
 void WrapPosition(float *x, float *y);
+bool IsOffScreen(float x, float y);
 
 inline float PerSecond(float value)
 {

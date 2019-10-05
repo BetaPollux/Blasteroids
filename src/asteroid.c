@@ -6,6 +6,11 @@
 #include <math.h>
 #include <assert.h>
 
+#define ASTEROID_W          40.0f
+#define ASTEROID_H          40.0f
+#define ASTEROID_MIN_SCALE  0.25f
+#define ASTEROID_MAX_SCALE  2.0f
+
 struct AsteroidStruct {
     float sx;
     float sy;
@@ -31,7 +36,7 @@ int Asteroid_Create(Asteroid **asteroid, float x, float y)
         newAsteroid->twist = Random(0.0f, ToRadians(360.0f));
         newAsteroid->speed = PerSecond(Random(10.0f, 50.0f));
         newAsteroid->rot_velocity = PerSecond(Random(ToRadians(5.0f), ToRadians(30.0f)));
-        newAsteroid->scale = Random(0.5f, 2.0f);
+        newAsteroid->scale = Random(ASTEROID_MIN_SCALE, ASTEROID_MAX_SCALE);
         newAsteroid->gone = 0;
         newAsteroid->color = al_map_rgb(255, 255, 255);
 
@@ -70,9 +75,9 @@ void Asteroid_Draw(const Asteroid *asteroid)
     al_translate_transform(&transform, asteroid->sx, asteroid->sy);
     al_use_transform(&transform);
 
-    al_draw_line(-20.0f, 20.0f, -25.0f, 5.0f, asteroid->color, 2.0f);
-    al_draw_line(-25.0f, 5.0f, -25.0f, -10.0f, asteroid->color, 2.0f);
-    al_draw_line(-25.0f, -10.0f, -5.0f, -10.0f, asteroid->color, 2.0f);
+    al_draw_line(-20.0f, 20.0f, -20.0f, 5.0f, asteroid->color, 2.0f);
+    al_draw_line(-20.0f, 5.0f, -20.0f, -10.0f, asteroid->color, 2.0f);
+    al_draw_line(-20.0f, -10.0f, -5.0f, -10.0f, asteroid->color, 2.0f);
     al_draw_line(-5.0f, -10.0f, -10.0f, -20.0f, asteroid->color, 2.0f);
     al_draw_line(-10.0f, -20.0f, 5.0f, -20.0f, asteroid->color, 2.0f);
     al_draw_line(5.0f, -20.0f, 20.0f, -10.0f, asteroid->color, 2.0f);
@@ -82,4 +87,26 @@ void Asteroid_Draw(const Asteroid *asteroid)
     al_draw_line(20.0f, 10.0f, 10.0f, 20.0f, asteroid->color, 2.0f);
     al_draw_line(10.0f, 20.0f, 0.0f, 15.0f, asteroid->color, 2.0f);
     al_draw_line(0.0f, 15.0f, -20.0f, 20.0f, asteroid->color, 2.0f);
+}
+
+void Asteroid_GetBoundingBox(const Asteroid *asteroid, BoundingBox_t *out)
+{
+    assert(asteroid);
+    assert(out);
+
+#ifdef ROTATE_BOUNDING
+    float width = 0.5f * ASTEROID_W * asteroid->scale;
+    float height = 0.5f * ASTEROID_H * asteroid->scale;
+
+    float adjWidth = width * fabs(cos(asteroid->twist)) + height * fabs(sin(asteroid->twist));
+    float adjHeight = width * fabs(sin(asteroid->twist)) + height * fabs(cos(asteroid->twist));
+#else
+    float adjWidth = 0.5f * ASTEROID_W * asteroid->scale;
+    float adjHeight = 0.5f * ASTEROID_H * asteroid->scale;
+#endif
+
+    out->left = asteroid->sx - adjWidth;
+    out->right = asteroid->sx + adjWidth;
+    out->top = asteroid->sy - adjHeight;
+    out->bottom = asteroid->sy + adjHeight;
 }

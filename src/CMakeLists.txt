@@ -8,6 +8,8 @@ add_executable(Blasteroids
     spaceship.h
     calc.c
     calc.h
+    boundingbox.c
+    boundingbox.h
 )
 
 target_link_libraries(Blasteroids
@@ -21,4 +23,21 @@ target_compile_options(Blasteroids
     PRIVATE
         -Wall
         -Wextra
+)
+
+option(DRAW_BOUNDING "Draw bounding boxes" OFF)
+option(ROTATE_BOUNDING "Rotate bounding boxes" OFF)
+
+if(DRAW_BOUNDING)
+    set(DEF_DRAW_BOUNDING "DRAW_BOUNDING")
+endif()
+
+if(ROTATE_BOUNDING)
+    set(DEF_ROTATE_BOUNDING "ROTATE_BOUNDING")
+endif()
+
+target_compile_definitions(Blasteroids
+    PRIVATE
+        ${DEF_DRAW_BOUNDING}
+        ${DEF_ROTATE_BOUNDING}
 )

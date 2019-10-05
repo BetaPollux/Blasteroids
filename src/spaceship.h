@@ -2,6 +2,7 @@
 #define _SPACESHIP_H
 
 #include "blast.h"
+#include "boundingbox.h"
 
 typedef struct SpaceshipStruct Spaceship;
 
@@ -18,5 +19,7 @@ void Spaceship_Update(Spaceship *ship);
 void Spaceship_Draw(const Spaceship *ship);
 
 int Spaceship_Fire(const Spaceship *ship, Blast **blast);
+
+void Spaceship_GetBoundingBox(const Spaceship *ship, BoundingBox_t *out);
 
 #endif // _SPACESHIP_H

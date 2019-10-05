@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define SHIP_W              16.0f
+#define SHIP_H              16.0f
 #define SHIP_MAX_SPEED      200.0f
 
  struct SpaceshipStruct {
@@ -98,4 +100,26 @@ int Spaceship_Fire(const Spaceship *ship, Blast **blast)
     assert(blast);
 
     return Blast_Create(blast, ship->sx, ship->sy - 10.0f, ship->heading);
+}
+
+void Spaceship_GetBoundingBox(const Spaceship *ship, BoundingBox_t *out)
+{
+    assert(ship);
+    assert(out);
+
+#ifdef ROTATE_BOUNDING
+    float width = 0.5f * SHIP_W;
+    float height = 0.5f * SHIP_H;
+
+    float adjWidth = width * fabs(cos(ship->heading)) + height * fabs(sin(ship->heading));
+    float adjHeight = width * fabs(sin(ship->heading)) + height * fabs(cos(ship->heading));
+#else
+    float adjWidth = 0.5f * SHIP_W;
+    float adjHeight = 0.5f * SHIP_H;
+#endif
+
+    out->left = ship->sx - adjWidth;
+    out->right = ship->sx + adjWidth;
+    out->top = ship->sy - adjHeight;
+    out->bottom = ship->sy + adjHeight;
 }

@@ -14,6 +14,9 @@ int main(int argc, char **argv)
 	ALLEGRO_TIMER *timer = NULL;
     bool redraw = true;
 
+	(void)argc;
+	(void)argv;
+
 	srand(time(0));
 
 	if (!al_init())
@@ -73,7 +76,7 @@ int main(int argc, char **argv)
     }
 
 	Asteroid *asteroid;
-	if (Asteroid_Create(&asteroid, 150.0f, 150.0f))
+	if (Asteroid_Create(&asteroid, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H)))
     {
         fprintf(stderr, "Failed to create asteroid!\n");
     }
@@ -110,7 +113,7 @@ int main(int argc, char **argv)
                     break;
 
                 case ALLEGRO_KEY_SPACE:
-					if (Spaceship_Fire(ship, &blast))
+					if (!blast && Spaceship_Fire(ship, &blast))
 					{
 						fprintf(stderr, "Failed to create blast!\n");
 						blast = NULL;
@@ -135,10 +138,48 @@ int main(int argc, char **argv)
 			Asteroid_Update(asteroid);
 			Asteroid_Draw(asteroid);
 
+			BoundingBox_t astBox;
+			Asteroid_GetBoundingBox(asteroid, &astBox);
+			
+			BoundingBox_t shipBox;
+			Spaceship_GetBoundingBox(ship, &shipBox);
+			
+#ifdef DRAW_BOUNDING
+			BoundingBox_Draw(&astBox);
+			BoundingBox_Draw(&shipBox);
+#endif
+
+			if (BoundingBox_Overlapped(&astBox, &shipBox))
+			{
+				Spaceship_Destroy(ship);
+				Spaceship_Create(&ship);
+			}
+
 			if (blast)
 			{
 				Blast_Update(blast);
-				Blast_Draw(blast);
+				
+				Point_t p;
+				Blast_GetLocation(blast, &p);
+				
+				bool destroyBlast = false;
+
+				if (BoundingBox_IsInside(&astBox, &p))
+				{
+					destroyBlast = true;
+					Asteroid_Destroy(asteroid);
+					Asteroid_Create(&asteroid, Random(0.0f, SCREEN_W), Random(0.0f, SCREEN_H));
+				}
+
+				if (destroyBlast || Blast_IsOffScreen(blast))
+				{
+					Blast_Destroy(blast);
+					blast = NULL;
+				}
+				else
+				{
+					Blast_Draw(blast);
+				}
 			}
 
             al_flip_display();

@@ -29,3 +29,11 @@ void WrapPosition(float *x, float *y)
         *y = 0.0f;
     }
 }
+
+bool IsOffScreen(float x, float y)
+{
+    bool inX = (x < 0.0f) || (x > SCREEN_W);
+    bool inY = (y < 0.0f) || (y > SCREEN_W);
+
+    return (inX || inY);
+}

@@ -63,3 +63,19 @@ void Blast_Draw(const Blast *blast)
     al_draw_line(0.0f, 5.0f, 0.0f, -5.0f, blast->color, 1.0f);
     al_draw_line(0.0f, -15.0f, 0.0f, -25.0f, blast->color, 1.0f);
 }
+
+bool Blast_IsOffScreen(const Blast *blast)
+{
+    assert(blast);
+    
+    return IsOffScreen(blast->sx, blast->sy);
+}
+
+void Blast_GetLocation(const Blast *blast, Point_t *out)
+{
+    assert(blast);
+    assert(out);
+
+    out->x = blast->sx;
+    out->y = blast->sy;
+}
