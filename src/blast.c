@@ -3,7 +3,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro.h>
 
-#define BLAST_SPEED     300.0f
+#define BLAST_SPEED     400.0f
 
 struct BlastStruct {
     float sx;

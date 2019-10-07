@@ -99,7 +99,7 @@ int Spaceship_Fire(const Spaceship *ship, Blast **blast)
     assert(ship);
     assert(blast);
 
-    return Blast_Create(blast, ship->sx, ship->sy - 10.0f, ship->heading);
+    return Blast_Create(blast, ship->sx, ship->sy, ship->heading);
 }
 
 void Spaceship_GetBoundingBox(const Spaceship *ship, BoundingBox_t *out)
