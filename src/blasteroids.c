@@ -5,16 +5,40 @@
 #include <Containers/List.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NUM_ASTEROIDS 4
+#define NUM_LIVES		4
+#define NUM_ASTEROIDS 	5
 
 typedef void (*ListFcn)(const void *item);
 
+void GameOver(void)
+{
+	ALLEGRO_FONT *font = al_load_ttf_font("Freshman.ttf", 72, 0);
+
+	if (font)
+	{
+		ALLEGRO_TRANSFORM transform;
+    	al_identity_transform(&transform);
+    	al_use_transform(&transform);
+
+		al_draw_text(font, al_map_rgb(255, 0, 0), SCREEN_W / 2, SCREEN_H / 2, ALLEGRO_ALIGN_CENTRE, "Game Over!");
+		al_flip_display();
+		al_rest(10);
+	}
+	else
+	{
+		fprintf(stderr, "Failed to load font!\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
 void ForAllItems(List_t list, ListFcn fcn)
 {
-	int num= List_Count(list);
+	int num = List_Count(list);
 	for (int idx = 0; idx < num; idx++)
 	{
 		const void *item = List_Item(list, idx);
@@ -22,7 +46,7 @@ void ForAllItems(List_t list, ListFcn fcn)
 	}	
 }
 
-void CheckShipCollision(Spaceship *ship, List_t asteroids)
+bool IsShipCollided(Spaceship *ship, List_t asteroids)
 {
 	BoundingBox_t shipBox;
 	Spaceship_GetBoundingBox(ship, &shipBox);
@@ -46,10 +70,24 @@ void CheckShipCollision(Spaceship *ship, List_t asteroids)
 
 		if (BoundingBox_Overlapped(&astBox, &shipBox))
 		{
-			Spaceship_Destroy(ship);
-			Spaceship_Create(&ship);
+			return true;
 		}
 	}
+
+	return false;
+}
+
+int CreateNewShip(List_t lives, Spaceship **ship)
+{
+	if (List_Count(lives) > 0)
+	{
+		Spaceship *usedLife = List_RemoveAt(lives, List_Count(lives) - 1);
+		Spaceship_Destroy(usedLife);
+
+		return Spaceship_Create(ship, SCREEN_W / 2, SCREEN_H / 2);
+	}
+
+	return 1;
 }
 
 void CheckBlastsCollision(List_t blasts, List_t asteroids)
@@ -127,6 +165,12 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
+	if (!al_init_font_addon() || !al_init_ttf_addon())
+	{
+		fprintf(stderr, "Failed to initialize font-addons!\n");
+        return EXIT_FAILURE;
+	}
+
     if(!al_install_keyboard()) {
         fprintf(stderr, "Failed to initialize the keyboard!\n");
         return EXIT_FAILURE;
@@ -165,11 +209,26 @@ int main(int argc, char **argv)
 
 	al_start_timer(timer);
 
-    Spaceship *ship;
-    if (Spaceship_Create(&ship))
-    {
-        fprintf(stderr, "Failed to create spaceship!\n");
-    }
+	List_t shipLives = List_Create();
+	if (!shipLives)
+	{
+		fprintf(stderr, "Failed to create ship lives!\n");
+	}
+
+	for (int i = 0; i < NUM_LIVES; i++)
+	{
+		Spaceship *life;
+		if (!Spaceship_Create(&life, 50.0f + i * 50.0f, 50.0f))
+		{
+			List_Add(shipLives, life);
+		}
+	}
+
+	Spaceship *ship;
+	if (CreateNewShip(shipLives, &ship))
+	{
+		fprintf(stderr, "Failed to create ship!\n");
+	}
 
 	List_t asteroids = List_Create();
 	if (!asteroids)
@@ -205,7 +264,14 @@ int main(int argc, char **argv)
 			ForAllItems(blasts, (ListFcn)Blast_Update);
 			ForAllItems(asteroids, (ListFcn)Asteroid_Update);
 
-			CheckShipCollision(ship, asteroids);
+			if (IsShipCollided(ship, asteroids))
+			{
+				Spaceship_Destroy(ship);
+				if (CreateNewShip(shipLives, &ship))
+				{
+					GameOver();
+				}
+			}
 			CheckBlastsCollision(blasts, asteroids);
 
 			redraw = true;
@@ -262,6 +328,7 @@ int main(int argc, char **argv)
             al_clear_to_color(al_map_rgb(0,0,0));
 
             Spaceship_Draw(ship);
+			ForAllItems(shipLives, (ListFcn)Spaceship_Draw);
 			ForAllItems(blasts, (ListFcn)Blast_Draw);
 			ForAllItems(asteroids, (ListFcn)Asteroid_Draw);
 

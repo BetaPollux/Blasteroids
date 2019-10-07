@@ -6,7 +6,7 @@
 
 typedef struct SpaceshipStruct Spaceship;
 
-int Spaceship_Create(Spaceship **ship);
+int Spaceship_Create(Spaceship **ship, float x, float y);
 
 void Spaceship_Destroy(Spaceship *ship);
 

@@ -18,15 +18,15 @@
     ALLEGRO_COLOR color;
 };
 
-int Spaceship_Create(Spaceship **ship)
+int Spaceship_Create(Spaceship **ship, float x, float y)
 {
     assert(ship);
 
     Spaceship *newShip = malloc(sizeof(Spaceship));
     if (newShip)
     {
-        newShip->sx = SCREEN_W / 2;
-        newShip->sy = SCREEN_H / 2;
+        newShip->sx = x;
+        newShip->sy = y;
         newShip->heading = 0.0f;
         newShip->speed = 0.0;
         newShip->gone = 0;

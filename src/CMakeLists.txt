@@ -17,6 +17,8 @@ target_link_libraries(Blasteroids
         Containers
         allegro
         allegro_primitives
+        allegro_font
+        allegro_ttf
         m
 )
 
@@ -42,3 +44,8 @@ target_compile_definitions(Blasteroids
         ${DEF_DRAW_BOUNDING}
         ${DEF_ROTATE_BOUNDING}
 )
+
+add_custom_command(TARGET Blasteroids POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:Blasteroids>)
+
