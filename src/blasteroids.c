@@ -12,28 +12,38 @@
 
 #define NUM_LIVES		4
 #define NUM_ASTEROIDS 	5
+#define FONT_NAME		"Freshman.ttf"
+#define SCREEN_PAD		50.0f
 
 typedef void (*ListFcn)(const void *item);
 
-void GameOver(void)
+void GameOver(ALLEGRO_FONT *font)
 {
-	ALLEGRO_FONT *font = al_load_ttf_font("Freshman.ttf", 72, 0);
+	ALLEGRO_TRANSFORM transform;
+	al_identity_transform(&transform);
+	al_use_transform(&transform);
 
-	if (font)
-	{
-		ALLEGRO_TRANSFORM transform;
-    	al_identity_transform(&transform);
-    	al_use_transform(&transform);
+	al_draw_text(font, al_map_rgb(255, 0, 0),
+		SCREEN_W / 2, SCREEN_H / 2,
+		ALLEGRO_ALIGN_CENTRE, "Game Over!");
+		
+	al_flip_display();
+	al_rest(10);
+}
 
-		al_draw_text(font, al_map_rgb(255, 0, 0), SCREEN_W / 2, SCREEN_H / 2, ALLEGRO_ALIGN_CENTRE, "Game Over!");
-		al_flip_display();
-		al_rest(10);
-	}
-	else
-	{
-		fprintf(stderr, "Failed to load font!\n");
-		exit(EXIT_FAILURE);
-	}
+void DrawScore(unsigned int score, ALLEGRO_FONT *font)
+{
+	ALLEGRO_TRANSFORM transform;
+	al_identity_transform(&transform);
+	al_use_transform(&transform);
+
+	char scoreStr[16];
+	snprintf(scoreStr, 16, "%d", score);
+
+	al_draw_text(font, al_map_rgb(255, 0, 0),
+		SCREEN_W - SCREEN_PAD, SCREEN_PAD,
+		ALLEGRO_ALIGN_RIGHT, scoreStr);
+	
 }
 
 void ForAllItems(List_t list, ListFcn fcn)
@@ -96,8 +106,10 @@ int CreateNewShip(List_t lives, Spaceship **ship)
 	return 1;
 }
 
-void CheckBlastsCollision(List_t blasts, List_t asteroids)
+void CheckBlastsCollision(List_t blasts, List_t asteroids, unsigned int *score)
 {
+	assert(score);
+
 	int destroyAstIndex = -1;
 	int destroyBlastIndex = -1;
 	int numAsteroids = List_Count(asteroids);
@@ -138,6 +150,7 @@ void CheckBlastsCollision(List_t blasts, List_t asteroids)
 	{
 		Asteroid *destAst = List_RemoveAt(asteroids, destroyAstIndex);
 		Asteroid_Destroy(destAst);
+		*score += 100;
 	}
 
 	if (destroyBlastIndex >= 0)
@@ -153,7 +166,7 @@ int main(int argc, char **argv)
 	ALLEGRO_EVENT_QUEUE *event_queue = NULL;
 	ALLEGRO_TIMER *timer = NULL;
     bool redraw = true;
-
+	unsigned int score = 0;
 	(void)argc;
 	(void)argv;
 
@@ -181,6 +194,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to initialize the keyboard!\n");
         return EXIT_FAILURE;
     }
+
+	ALLEGRO_FONT *bigFont = al_load_ttf_font(FONT_NAME, 72, 0);
+	ALLEGRO_FONT *smallFont = al_load_ttf_font(FONT_NAME, 24, 0);
+	if (!bigFont || !smallFont)
+	{
+		fprintf(stderr, "Failed to load font!\n");
+		exit(EXIT_FAILURE);
+	}
 
 	timer = al_create_timer(1.0f / FPS);
 	if (!timer)
@@ -224,7 +245,7 @@ int main(int argc, char **argv)
 	for (int i = 0; i < NUM_LIVES; i++)
 	{
 		Spaceship *life;
-		if (!Spaceship_Create(&life, 50.0f + i * 50.0f, 50.0f))
+		if (!Spaceship_Create(&life, SCREEN_PAD + i * SCREEN_PAD, SCREEN_PAD))
 		{
 			List_Add(shipLives, life);
 		}
@@ -275,10 +296,10 @@ int main(int argc, char **argv)
 				Spaceship_Destroy(ship);
 				if (CreateNewShip(shipLives, &ship))
 				{
-					GameOver();
+					GameOver(bigFont);
 				}
 			}
-			CheckBlastsCollision(blasts, asteroids);
+			CheckBlastsCollision(blasts, asteroids, &score);
 
 			redraw = true;
 		}
@@ -337,6 +358,7 @@ int main(int argc, char **argv)
 			ForAllItems(shipLives, (ListFcn)Spaceship_Draw);
 			ForAllItems(blasts, (ListFcn)Blast_Draw);
 			ForAllItems(asteroids, (ListFcn)Asteroid_Draw);
+			DrawScore(score, smallFont);
 
             al_flip_display();
         }
