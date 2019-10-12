@@ -14,6 +14,7 @@
     float sy;
     float heading;
     float speed;
+    float shields;
     int gone;
     ALLEGRO_COLOR color;
 };
@@ -75,6 +76,9 @@ void Spaceship_Update(Spaceship *ship)
     ship->sx += Displacement_X(ship->heading, ship->speed);
     ship->sy += Displacement_Y(ship->heading, ship->speed);
 
+    if (ship->shields > 0.0f)
+        ship->shields -= PerSecond(1.0f);
+
     WrapPosition(&ship->sx, &ship->sy);
 }
 
@@ -92,6 +96,12 @@ void Spaceship_Draw(const Spaceship *ship)
     al_draw_line(0.0f, -11.0f, 8.0f, 9.0f, ship->color, 3.0f);
     al_draw_line(-6.0f, 4.0f, -1.0f, 4.0f, ship->color, 3.0f);
     al_draw_line(6.0f, 4.0f, 1.0f, 4.0f, ship->color, 3.0f);
+
+    if (ship->shields > 0.0f)
+    {
+        ALLEGRO_COLOR shieldColor = al_map_rgb(0, 128, 128);
+        al_draw_circle(0.0f, 0.0f, SHIP_H, shieldColor, 2.0f);
+    }
 }
 
 int Spaceship_Fire(const Spaceship *ship, Blast **blast)
@@ -122,4 +132,18 @@ void Spaceship_GetBoundingBox(const Spaceship *ship, BoundingBox_t *out)
     out->right = ship->sx + adjWidth;
     out->top = ship->sy - adjHeight;
     out->bottom = ship->sy + adjHeight;
+}
+
+void Spaceship_EnableShields(Spaceship *ship, float duration)
+{
+    assert(ship);
+
+    ship->shields = duration;
+}
+
+bool Spaceship_AreShieldsUp(Spaceship *ship)
+{
+    assert(ship);
+
+    return ship->shields > 0.0f;
 }

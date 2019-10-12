@@ -48,6 +48,11 @@ void ForAllItems(List_t list, ListFcn fcn)
 
 bool IsShipCollided(Spaceship *ship, List_t asteroids)
 {
+	if (Spaceship_AreShieldsUp(ship))
+	{
+		return false;
+	}
+
 	BoundingBox_t shipBox;
 	Spaceship_GetBoundingBox(ship, &shipBox);
 
@@ -83,8 +88,9 @@ int CreateNewShip(List_t lives, Spaceship **ship)
 	{
 		Spaceship *usedLife = List_RemoveAt(lives, List_Count(lives) - 1);
 		Spaceship_Destroy(usedLife);
-
-		return Spaceship_Create(ship, SCREEN_W / 2, SCREEN_H / 2);
+		int result = Spaceship_Create(ship, SCREEN_W / 2, SCREEN_H / 2);
+		Spaceship_EnableShields(*ship, 5.0f);
+		return result;
 	}
 
 	return 1;

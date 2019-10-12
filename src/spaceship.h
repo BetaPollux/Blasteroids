@@ -22,4 +22,8 @@ int Spaceship_Fire(const Spaceship *ship, Blast **blast);
 
 void Spaceship_GetBoundingBox(const Spaceship *ship, BoundingBox_t *out);
 
+void Spaceship_EnableShields(Spaceship *ship, float duration);
+
+bool Spaceship_AreShieldsUp(Spaceship *ship);
+
 #endif // _SPACESHIP_H
