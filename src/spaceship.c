@@ -29,6 +29,7 @@ int Spaceship_Create(Spaceship **ship, float x, float y)
         newShip->sx = x;
         newShip->sy = y;
         newShip->heading = 0.0f;
+        newShip->shields = 0.0f;
         newShip->speed = 0.0;
         newShip->gone = 0;
         newShip->color = al_map_rgb(0, 255, 0);

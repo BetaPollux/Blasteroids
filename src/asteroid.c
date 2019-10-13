@@ -19,6 +19,8 @@ struct AsteroidStruct {
     float speed;
     float rot_velocity;
     float scale;
+    float health;
+    float maxHealth;
     int gone;
     ALLEGRO_COLOR color;
 };
@@ -42,6 +44,8 @@ int createAsteroid(Asteroid **asteroid, float x, float y, float heading, float s
         newAsteroid->speed = speed;
         newAsteroid->rot_velocity = PerSecond(Random(ToRadians(5.0f), ToRadians(30.0f)));
         newAsteroid->scale = scale;
+        newAsteroid->maxHealth = 100.0f * scale;
+        newAsteroid->health = newAsteroid->maxHealth;
         newAsteroid->gone = 0;
         newAsteroid->color = al_map_rgb(255, 255, 255);
 
@@ -103,6 +107,28 @@ void Asteroid_Draw(const Asteroid *asteroid)
     al_draw_line(20.0f, 10.0f, 10.0f, 20.0f, asteroid->color, 2.0f);
     al_draw_line(10.0f, 20.0f, 0.0f, 15.0f, asteroid->color, 2.0f);
     al_draw_line(0.0f, 15.0f, -20.0f, 20.0f, asteroid->color, 2.0f);
+
+    //Health bar
+    ALLEGRO_COLOR healthColor;
+    float healthFrac = asteroid->health / asteroid->maxHealth;
+    if (healthFrac > 0.7f)
+    {
+        healthColor = al_map_rgb(0, 255, 0);
+    }
+    else if (healthFrac > 0.3f)
+    {
+        healthColor = al_map_rgb(255, 255, 0);
+    }
+    else
+    {
+        healthColor = al_map_rgb(255, 0, 0);
+    }
+
+    if (healthFrac < 1.0f)
+    {
+        float endX = -20.0f + healthFrac * 40.0f;
+        al_draw_line(-20.0f, -20.0f, endX, -20.0f, healthColor, 3.0f);
+    }
 }
 
 void Asteroid_GetBoundingBox(const Asteroid *asteroid, BoundingBox_t *out)
@@ -151,4 +177,25 @@ int Asteroid_SpawnSplit(const Asteroid *asteroid, Asteroid **one, Asteroid **two
     }
 
     return (*one == NULL) || (*two == NULL);
+}
+
+void Asteroid_Hit(Asteroid *asteroid, float damage)
+{
+    assert(asteroid);
+    
+    asteroid->health -= damage;
+}
+
+bool Asteroid_IsDead(const Asteroid *asteroid)
+{
+    assert(asteroid);
+
+    return asteroid->health <= 0.0f;
+}
+
+int Asteroid_GetScore(const Asteroid *asteroid)
+{
+    assert(asteroid);
+
+    return 100 * (int)asteroid->maxHealth / 10;
 }

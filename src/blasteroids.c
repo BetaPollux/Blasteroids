@@ -111,7 +111,6 @@ void CheckBlastsCollision(List_t blasts, List_t asteroids, unsigned int *score)
 	assert(score);
 
 	int destroyAstIndex = -1;
-	int destroyBlastIndex = -1;
 	int numAsteroids = List_Count(asteroids);
 	for (int astIdx = 0; astIdx < numAsteroids; astIdx++)
 	{
@@ -120,6 +119,7 @@ void CheckBlastsCollision(List_t blasts, List_t asteroids, unsigned int *score)
 		BoundingBox_t astBox;
 		Asteroid_GetBoundingBox(asteroid, &astBox);
 
+		int destroyBlastIndex = -1;
 		int numBlasts = List_Count(blasts);
 		for (int blastIdx = 0; blastIdx < numBlasts; blastIdx++)
 		{
@@ -129,14 +129,18 @@ void CheckBlastsCollision(List_t blasts, List_t asteroids, unsigned int *score)
 
 			if (BoundingBox_IsInside(&astBox, &p))
 			{
-				destroyAstIndex = astIdx;
+				float damage = Blast_GetDamage(blast);
+				Asteroid_Hit(asteroid, damage);
 				destroyBlastIndex = blastIdx;
-
-				Asteroid *ast1, *ast2;
-				if (!Asteroid_SpawnSplit(asteroid, &ast1, &ast2))
+				if (Asteroid_IsDead(asteroid))
 				{
-					List_Add(asteroids, ast1);
-					List_Add(asteroids, ast2);
+					destroyAstIndex = astIdx;
+					Asteroid *ast1, *ast2;
+					if (!Asteroid_SpawnSplit(asteroid, &ast1, &ast2))
+					{
+						List_Add(asteroids, ast1);
+						List_Add(asteroids, ast2);
+					}
 				}
 			}
 			else if (Blast_IsOffScreen(blast))
@@ -144,19 +148,19 @@ void CheckBlastsCollision(List_t blasts, List_t asteroids, unsigned int *score)
 				destroyBlastIndex = blastIdx;
 			}
 		}
+
+		if (destroyBlastIndex >= 0)
+		{
+			Blast *destBlast = List_RemoveAt(blasts, destroyBlastIndex);
+			Blast_Destroy(destBlast);
+		}
 	}
 
 	if (destroyAstIndex >= 0)
 	{
 		Asteroid *destAst = List_RemoveAt(asteroids, destroyAstIndex);
+		*score += Asteroid_GetScore(destAst);
 		Asteroid_Destroy(destAst);
-		*score += 100;
-	}
-
-	if (destroyBlastIndex >= 0)
-	{
-		Blast *destBlast = List_RemoveAt(blasts, destroyBlastIndex);
-		Blast_Destroy(destBlast);
 	}
 }
 
@@ -326,21 +330,25 @@ int main(int argc, char **argv)
         }
 		else if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
         {
+			Blast *newBlast;
 			switch (ev.keyboard.keycode)
 			{
 				case ALLEGRO_KEY_SPACE:
-				{
-					Blast *newBlast;
 					if (!Spaceship_Fire(ship, &newBlast))
 					{
 						List_Add(blasts, newBlast);
 					}
-					else
+					break;
+				case ALLEGRO_KEY_ALT:
+					if (!Spaceship_Fire(ship, &newBlast))
 					{
-						fprintf(stderr, "Failed to create blast!\n");
+						Blast_Configure(newBlast, 10.0f, 0.25f);
+						List_Add(blasts, newBlast);
 					}
-				}
-				break;
+					break;
+				case ALLEGRO_KEY_LCTRL:
+					Spaceship_EnableShields(ship, 3.0f);
+					break;
 			}
 		}
 		else if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
@@ -365,22 +373,12 @@ int main(int argc, char **argv)
 	}
 
     Spaceship_Destroy(ship);
-
-	int numAsteroids = List_Count(asteroids);
-	while(numAsteroids--)
-	{
-		Asteroid *ast = List_RemoveAt(asteroids, numAsteroids);
-		Asteroid_Destroy(ast);
-	}
+	ForAllItems(asteroids, (ListFcn)Asteroid_Destroy);
 	List_Destroy(asteroids);
-
-	int numBlasts = List_Count(blasts);
-	while(numBlasts--)
-	{
-		Blast *blast = List_RemoveAt(blasts, numBlasts);
-		Blast_Destroy(blast);
-	}
+	ForAllItems(blasts, (ListFcn)Blast_Destroy);
 	List_Destroy(blasts);
+	ForAllItems(shipLives, (ListFcn)Spaceship_Destroy);
+	List_Destroy(shipLives);
 
 	al_destroy_timer(timer);
 	al_destroy_display(display);
